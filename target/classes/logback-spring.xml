@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PATH" value="/data/logs/expression-engine/"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                %d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] [%X{traceId}] [%X{uid}] %-5level %logger{0}.%M - %msg%n
+            </Pattern>
+        </encoder>
+    </appender>
+    <appender name="fileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${logName}/${logName}.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                %d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] [%X{traceId}] [%X{uid}] %-5level %logger{0}.%M - %msg%n
+            </Pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archived/${logName}/${logName}.%d{yyyy-MM-ddHH}.log.gz</fileNamePattern>
+            <maxHistory>720</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <logger  name="com.wise.rulesengine" level="ERROR">
+        <appender-ref ref="fileAppender"/>
+        <appender-ref ref="CONSOLE"/>
+
+    </logger>
+</configuration>
