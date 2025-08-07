@@ -17,6 +17,11 @@
       <option name="url" value="http://192.168.138.192:8081/repository/maven-public/" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Central Repository" />
+      <option name="url" value="https://repo.maven.apache.org/maven2" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="al-nexus" />
       <option name="name" value="Akulaku Nexus" />
       <option name="url" value="https://git.silvrr.com:8983/repository/maven-public/" />
@@ -34,17 +39,17 @@
     <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Central Repository" />
+      <option name="url" value="http://192.168.138.192:8081/repository/maven-public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Central Repository" />
       <option name="url" value="https://git.silvrr.com:8983/repository/maven-public/" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="bag-releases" />
       <option name="name" value="bag-releases" />
       <option name="url" value="http://nexus-bag.akulaku.com:8081/repository/maven-releases/" />
-    </remote-repository>
-    <remote-repository>
-      <option name="id" value="central" />
-      <option name="name" value="Central Repository" />
-      <option name="url" value="http://192.168.138.192:8081/repository/maven-public/" />
     </remote-repository>
   </component>
 </project>

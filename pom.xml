@@ -4,9 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.tommy.rule</groupId>
-    <artifactId>rule-engine-sdk</artifactId>
-    <version>1.0.1</version>
+    <!-- 项目坐标必须与仓库匹配 -->
+    <groupId>com.chaserzh.rule</groupId>
+    <artifactId>rule-engine</artifactId>
+    <version>1.0.3</version>  <!-- 更新版本号 -->
     <packaging>jar</packaging>
 
     <name>Rule Engine SDK</name>
@@ -86,48 +87,45 @@
 
     </dependencies>
 
+
+    <!-- 部署配置 -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>  <!-- 必须与settings.xml一致 -->
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/chaserZH/rule-engine</url>
+        </repository>
+    </distributionManagement>
+
     <build>
         <plugins>
-            <!-- 编译插件 -->
+            <!-- 强制指定最新版deploy插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                </configuration>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.1</version>
             </plugin>
-
-            <!-- 源码打包 -->
+            <!-- 确保有source和javadoc插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                    <docencoding>UTF-8</docencoding>
-                    <charset>UTF-8</charset>
-                    <doclint>none</doclint>
-                </configuration>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
-                        <phase>package</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
@@ -136,4 +134,6 @@
             </plugin>
         </plugins>
     </build>
+
+
 </project>
