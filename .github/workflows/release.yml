@@ -2,7 +2,7 @@ name: Build and Upload Release Artifacts
 
 on:
   release:
-    types: [created]  # 当创建新 Release 时触发
+    types: [created, edited]  # 同时监听创建和编辑事件
 
 permissions:
   contents: write  # 必需的上传权限
