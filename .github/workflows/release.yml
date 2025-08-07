@@ -21,7 +21,7 @@ jobs:
         run: mvn -B clean package  # 生成 jar 包
 
       - name: Upload Release Artifact
-        uses: softprops/action-gh-release
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 自动提供的 token
         with:
