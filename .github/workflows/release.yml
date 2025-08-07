@@ -4,6 +4,9 @@ on:
   release:
     types: [created]  # 当创建新 Release 时触发
 
+permissions:
+  contents: write  # 必需的上传权限
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,20 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Java (Maven)
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: '8'  # 根据你的项目调整
+          java-version: '8'  # 推荐使用 LTS 版本
           distribution: 'temurin'
 
       - name: Build with Maven
         run: mvn -B clean package  # 生成 jar 包
 
-      - name: Upload Release Artifact
+      - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 自动提供的 token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}  # Release 的上传地址
-          asset_path: target/*.jar  # 要上传的 jar 包路径（Maven 默认在 target/）
-          asset_name: your-app-${{ github.event.release.tag_name }}.jar  # 自定义文件名
+          files: |
+            target/*.jar
+            target/*-sources.jar  # 可选：上传源码包
+          tag_name: ${{ github.ref_name }}  # 自动使用当前 tag
