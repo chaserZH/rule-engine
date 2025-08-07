@@ -64,11 +64,16 @@ public class RuleValidator {
                 if (group.getType() != RuleGroup.Type.AND) {
                     throw new RuleEngineException("Rule group has one child, its type must be AND or unspecified: " + group.getId());
                 }
-            }else if (group.getChildren().size() >= 2) {
+            }else if (group.getChildren().size() == 2) {
                 if (group.getType() == null) {
                     throw new RuleEngineException("Rule group has multiple children, its type must be specified (AND or OR): " + group.getId());
                 }
+            }else if (group.getChildren().size() > 2) {
+                if (group.getType() == null) {
+                    throw new RuleEngineException("Rule group has more than 2 children " + group.getId());
+                }
             }
+
             List<RuleNode> children = group.getChildren();
             for (RuleNode child : children) {
                 validateNode(child, ids);
