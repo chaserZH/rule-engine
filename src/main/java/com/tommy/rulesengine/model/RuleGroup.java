@@ -1,67 +1,91 @@
 package com.tommy.rulesengine.model;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import org.jeasy.rules.api.Facts;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 规则组实体
+ * @author zhanghao
  */
 public class RuleGroup extends RuleNode {
 
-    public enum Type { AND, OR }
+    private static final long serialVersionUID = -4303779533283614895L;
+    /**
+     * 逻辑类型
+     */
+    private LogicType logic;
 
-    // "AND" 或 "OR"
-    private Type type;
+    /**
+     * 子节点
+     */
     private List<RuleNode> children = new ArrayList<>();
 
-    public RuleGroup() {}
-
-    public RuleGroup(String id, String name, Type type, int priority) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
-        this.priority = priority;
-    }
-
-    public RuleGroup(String id, String name, Type type, int priority, List<RuleNode> children) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
-        this.priority = priority;
+    public RuleGroup(String id, String name, String description, int priority, LogicType logic, List<RuleNode> children) {
+        super(id, RuleGroupType.COMPOSITE, name, description, priority);
+        this.logic = logic;
         this.children = children;
     }
 
-    @Override
-    public RuleResult evaluate(Map<String, Object> context) {
-        List<RuleResult> results = children.stream()
-                .sorted(Comparator.comparingInt(RuleNode::getPriority))
-                .map(child -> child.evaluate(context))
-                .collect(Collectors.toList());
-
-        boolean pass = (type == Type.AND)
-                ? results.stream().allMatch(RuleResult::isPass)
-                : results.stream().anyMatch(RuleResult::isPass);
-
-        return new RuleResult(id, pass, "Group: " + name, results);
+    public RuleGroup(String id, LogicType logic, List<RuleNode> children) {
+        super(id, RuleGroupType.COMPOSITE);
+        this.logic = Objects.requireNonNull(logic);
+        this.children = new ArrayList<>(Objects.requireNonNull(children));
     }
 
+
+    public LogicType getLogic() {
+        return logic;
+    }
+    
+    public void setLogic(LogicType logic) {
+        this.logic = logic;
+    }
+    
+    
+    public List<RuleNode> getChildren() {
+        return children;
+    }
+    
     public void addChild(RuleNode child) {
         this.children.add(child);
     }
 
-    public void setType(String typeStr) {
-        this.type = Type.valueOf(typeStr);
+    public void setChildren(List<RuleNode> children) {
+        this.children = children;
     }
 
-    public Type getType() {
-        return type;
-    }
 
-    public List<RuleNode> getChildren() {
-        return children;
+    @Override
+    public RuleResult evaluateWithResult(Facts facts) {
+        RuleResult.Builder builder = new RuleResult.Builder(id);
+        List<RuleResult> childResults = new ArrayList<>();
+        boolean passed = false;
+
+        switch (logic) {
+            case AND:
+                childResults = children.stream()
+                        .sorted(Comparator.comparingInt(RuleNode::getPriority))
+                        .map(child -> child.evaluateWithResult(facts))
+                        .collect(Collectors.toList());
+                passed = childResults.stream().allMatch(RuleResult::isPass);
+                break;
+                case OR:
+                    childResults = children.stream()
+                            .sorted(Comparator.comparingInt(RuleNode::getPriority))
+                            .map(child -> child.evaluateWithResult(facts))
+                            .collect(Collectors.toList());
+                    passed = childResults.stream().anyMatch(RuleResult::isPass);
+                    break;
+                    default:
+                        break;
+        }
+
+        return builder.pass(passed)
+                .message(passed ? "组合规则通过" : "组合规则未通过")
+                .children(childResults)
+                .build();
     }
 
     @Override

@@ -4,13 +4,12 @@ package com.tommy.rulesengine.parser;
 
 
 
+import com.ctrip.framework.apollo.core.utils.StringUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tommy.rulesengine.constants.FileType;
-import com.tommy.rulesengine.model.RuleDefinition;
-import com.tommy.rulesengine.model.RuleGroup;
-import com.tommy.rulesengine.model.RuleNode;
+import com.tommy.rulesengine.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -77,14 +76,66 @@ public class RuleParser {
 
     /**
      * 解析rules
-     * @param rulesList
-     * @return
+     * @param rulesList 规则组列表
+     * @return 规则组
      */
     private List<RuleGroup> parseRuleList(List<Map<String, Object>> rulesList) {
         return rulesList.stream()
+                .filter(this::prePredicateNode)
                 .map(this::buildNode)
                 .map(this::wrapAsGroupIfNeeded)
                 .collect(Collectors.toList());
+    }
+
+
+    /**
+     * 构造规则组之前进行检查
+     * @param nodeMap 节点信息
+     * @return 是否合法
+     */
+    private boolean prePredicateNode(Map<String, Object> nodeMap) {
+        String type = (String) nodeMap.get("type");
+        String id = (String) nodeMap.get("id");
+        String name = (String) nodeMap.get("name");
+        @SuppressWarnings("unchecked")
+       List<Map<String, Object>> children = (List<Map<String, Object>>) nodeMap.get("children");
+        // 必填字段校验
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Rule id is required");
+        }
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("Rule name is required");
+        }
+        if (StringUtils.isBlank(type)) {
+            throw new IllegalArgumentException("Rule type is required");
+        }
+
+        // 类型校验
+        RuleGroupType ruleGroupType = RuleGroupType.valueOf(type);
+        //如果是叶子节点,那么其子节点必须为空，表达式必须存在
+        if (RuleGroupType.LEAF == ruleGroupType) {
+            if (children != null && !children.isEmpty()) {
+                throw new IllegalArgumentException("Leaf rule cannot have children,"+id);
+            }
+            String expression = (String) nodeMap.get("expression");
+            if (StringUtils.isEmpty(expression)) {
+                throw new IllegalArgumentException("Rule expression is required,id:" + id);
+            }
+        }
+
+        //是组合节点，name必须存在
+        if (children == null || children.isEmpty()) {
+            throw new IllegalArgumentException("Rule children is required");
+        }
+        if (children.size() > 2) {
+            throw new IllegalArgumentException("Rule children contains more than 2 elements,id:" + id);
+        }
+
+        String logic = (String) nodeMap.get("logic");
+        if (StringUtils.isEmpty(logic)) {
+            throw new IllegalArgumentException("Composite rule logic is required"+id);
+        }
+        return true;
     }
 
 
@@ -102,7 +153,7 @@ public class RuleParser {
             } else {
                 // 当作单个RuleGroup处理
                 Map<String, Object> ruleMap = jsonMapper.convertValue(rootNode, new TypeReference<Map<String, Object>>() {});
-                return Collections.singletonList(wrapAsGroupIfNeeded(buildNode(ruleMap)));
+                return parseRuleList(Collections.singletonList(ruleMap));
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid JSON format", e);
@@ -187,10 +238,11 @@ public class RuleParser {
             nodeMap.put("priority", Integer.parseInt(props.getProperty(prefix + ".priority")));
         }
 
-        if ("SINGLE".equals(type)) {
+        if ("LEAF".equals(type)) {
             nodeMap.put("expression", props.getProperty(prefix + ".expression"));
         } else {
             // 处理嵌套的子节点
+            nodeMap.put("logic", props.getProperty(prefix + ".logic"));
             Set<Integer> grandChildIndices = props.stringPropertyNames().stream()
                     .filter(key -> key.startsWith(prefix + ".children[") && key.contains("].id"))
                     .map(key -> Integer.parseInt(key.replaceAll(".*children\\[(\\d+)\\].*", "$1")))
@@ -215,30 +267,31 @@ public class RuleParser {
      */
     private RuleNode buildNode(Map<String, Object> nodeMap) {
         String type = (String) nodeMap.get("type");
+        String logic = (String) nodeMap.get("logic");
         String id = (String) nodeMap.get("id");
         String name = (String) nodeMap.get("name");
         int priority = nodeMap.get("priority") != null ? (int) nodeMap.get("priority") : 0;
+        String description = (String) nodeMap.get("description");
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> children = (List<Map<String, Object>>) nodeMap.get("children");
-        if ("SINGLE".equalsIgnoreCase(type) || children == null || children.isEmpty()){
+
+        //构建叶子节点
+        if (RuleGroupType.LEAF.name().equalsIgnoreCase(type)){
             String expression = (String) nodeMap.get("expression");
-            return new RuleDefinition(id, name, priority, expression);
+            return new RuleDefinition(id, name,description, priority, expression);
         }
+
+
+        // 组合节点
+        LogicType logicType = LogicType.valueOf(logic);
 
         // 子节点存在，递归处理
         List<RuleNode> childNodes = children.stream()
                 .map(this::buildNode)
                 .collect(Collectors.toList());
-        RuleGroup.Type ruleType ;
-        if (children.size() == 1) {
-            ruleType = RuleGroup.Type.AND;
-        } else {
-            if (type == null) {
-                throw new IllegalArgumentException("Missing group type (AND/OR)");
-            }
-            ruleType = RuleGroup.Type.valueOf(type);
-        }
 
-        return new RuleGroup(id, name, ruleType, priority, childNodes);
+        // 构建组合节点
+        return new RuleGroup(id,name,description,priority,logicType,childNodes);
     }
 
     /**
@@ -250,12 +303,6 @@ public class RuleParser {
         }
 
         // 如果为RuleDefinition，包装为AND Group
-        RuleGroup wrapper = new RuleGroup();
-        wrapper.setId("auto_group_" + node.getId());
-        wrapper.setName("AutoWrappedGroup");
-        wrapper.setType("AND");
-        wrapper.setPriority(0);
-        wrapper.addChild(node);
-        return wrapper;
+        return new RuleGroup("auto_group_" + node.getId(),"AutoWrappedGroup","AutoWrappedGroup",0,LogicType.AND,new ArrayList<>());
     }
 }

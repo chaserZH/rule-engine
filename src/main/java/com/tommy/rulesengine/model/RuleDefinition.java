@@ -2,6 +2,7 @@ package com.tommy.rulesengine.model;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
+import org.jeasy.rules.api.Facts;
 
 import java.util.Map;
 
@@ -12,32 +13,27 @@ import java.util.Map;
  */
 public class RuleDefinition extends RuleNode {
 
+    private static final long serialVersionUID = -6275744375419577254L;
     /**
      * 表达式
      * // Aviator表达式
      */
     private String expression;
 
-    public RuleDefinition() {
+    public RuleDefinition(String id, String expression) {
+        super(id, RuleGroupType.LEAF);
+        this.expression = validateExpression(expression);
     }
 
-    public RuleDefinition(String id,String name,int priority,String expression) {
-        this.id = id;
-        this.name = name;
-        this.priority = priority;
+    public RuleDefinition(String id, String name, String description, int priority, String expression) {
+        super(id, RuleGroupType.LEAF, name, description, priority);
         this.expression = expression;
     }
 
-    @Override
-    public RuleResult evaluate(Map<String, Object> context) {
-        try {
-            Expression compiled = AviatorEvaluator.compile(expression, true);
-            Object result = compiled.execute(context);
-            boolean pass = result instanceof Boolean && (Boolean) result;
-            return new RuleResult(id, pass, "Expression: " + expression);
-        } catch (Exception e) {
-            return new RuleResult(id, false, "Error: " + e.getMessage());
-        }
+    private static String validateExpression(String expr) {
+        // 预编译验证表达式
+        AviatorEvaluator.compile(expr);
+        return expr;
     }
 
     public String getExpression() {
@@ -48,6 +44,22 @@ public class RuleDefinition extends RuleNode {
     public void setExpression(String expression) {
         this.expression = expression;
     }
+
+
+    @Override
+    public RuleResult evaluateWithResult(Facts facts) {
+        try {
+            Object result = AviatorEvaluator.execute(expression, facts.asMap());
+            boolean pass = Boolean.TRUE.equals(result);
+
+            return createResult(pass,
+                    pass ? "表达式验证通过" : "表达式验证失败");
+        } catch (Exception e) {
+            return createResult(false,
+                    "表达式执行错误: " + e.getMessage());
+        }
+    }
+
 
     @Override
     public String toString() {

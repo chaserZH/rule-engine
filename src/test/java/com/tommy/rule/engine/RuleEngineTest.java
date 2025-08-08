@@ -1,17 +1,13 @@
 package com.tommy.rule.engine;
 
-import com.tommy.rulesengine.model.RuleDefinition;
-import com.tommy.rulesengine.model.RuleGroup;
-import com.tommy.rulesengine.model.RuleResult;
+import com.tommy.rulesengine.model.*;
 import com.tommy.rulesengine.util.RuleEngineUtil;
 import org.junit.jupiter.api.Test;
 
 
 import java.io.IOException;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class RuleEngineTest {
 
@@ -20,10 +16,10 @@ public class RuleEngineTest {
      */
     @Test
     public void testSingleChildGroup() {
-        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A",1, "isInCrowd(uid, '200003')");
+        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A","判断是否在客群A",1, "isInCrowd(uid, '200003')");
         r1.setPriority(1);
 
-        RuleGroup root = new RuleGroup("single-group", "单节点组合", RuleGroup.Type.AND, 0, Collections.singletonList(r1));
+        RuleGroup root = new RuleGroup("single-group", "单节点组合","单节点组合",0, LogicType.AND, Collections.singletonList(r1));
 
         Map<String, Object> context = new HashMap<>();
         context.put("uid", 2038L);
@@ -51,17 +47,21 @@ public class RuleEngineTest {
      */
     @Test
     public void testMultipleChildGroup() {
-        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A",1, "isInCrowd(uid, '200003')");
-        RuleDefinition r2 = new RuleDefinition("r2", "余额大于100",2, "balance > 100");
-        RuleDefinition r3 = new RuleDefinition("r3", "年龄小于30",3, "age < 30");
+        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A","判断是否在客群A",1, "isInCrowd(uid, '200003')");
+        RuleDefinition r2 = new RuleDefinition("r2", "余额大于100","余额大于100",2, "balance > 100");
+        RuleDefinition r3 = new RuleDefinition("r3", "年龄小于30","年龄小于30",3, "age < 30");
 
-        RuleGroup subGroup = new RuleGroup("group-1", "子组合组", RuleGroup.Type.OR, 2);
-        subGroup.addChild(r2);
-        subGroup.addChild(r3);
+        List<RuleNode> children = new ArrayList<>();
+        children.add(r2);
+        children.add(r3);
 
-        RuleGroup root = new RuleGroup("root-group", "根组合规则", RuleGroup.Type.AND,0);
-        root.addChild(r1);
-        root.addChild(subGroup);
+        RuleGroup subGroup = new RuleGroup("group-1", "子组合组","子组合组",1, LogicType.OR, children);
+
+        List<RuleNode> children2 = new ArrayList<>();
+        children2.add(r1);
+        children2.add(subGroup);
+        RuleGroup root = new RuleGroup("root-group", "根组合规则","",2, LogicType.AND,children2);
+
 
         Map<String, Object> context = new HashMap<>();
         context.put("uid", 2038L);

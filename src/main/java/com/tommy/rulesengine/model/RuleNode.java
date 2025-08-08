@@ -1,53 +1,77 @@
 package com.tommy.rulesengine.model;
 
+import org.jeasy.rules.api.Facts;
+import org.jeasy.rules.api.Rule;
+import org.jeasy.rules.core.BasicRule;
+
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 规则节点基类
  * @author zhanghao
  */
-public abstract class RuleNode implements Serializable {
+public abstract class RuleNode extends BasicRule implements Serializable {
 
     private static final long serialVersionUID = 2945212834894124768L;
     /**
      * 节点id
      */
     protected String id;
-
     /**
-     * 名称
+     * 节点类型
      */
-    protected String name;
+    protected final RuleGroupType type;
 
-    /**
-     * 优先级
-     */
-    protected int priority;
+    // 强制子类明确类型
+    protected RuleNode(String id, RuleGroupType type,
+                       String name, String description, int priority) {
+        super(name, description, priority);
+        this.id = Objects.requireNonNull(id);
+        this.type = Objects.requireNonNull(type);
+    }
+
+    // 简化构造（自动生成默认名称等）
+    protected RuleNode(String id, RuleGroupType type) {
+        //// 默认名称,// 空描述
+        this(id, type,
+                "Rule-" + id,
+                "",
+                Rule.DEFAULT_PRIORITY);
+    }
+
+    public RuleGroupType getType() {
+        return this.type;
+    }
 
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
+    /**
+     * 实现BasicRule的boolean方法（适配旧逻辑）
+     * @param facts 参数
+     * @return 结果
+     */
     @Override
-    public String toString() {
-        return "RuleNode{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", priority=" + priority +
-                '}';
+    public  boolean evaluate(Facts facts){
+        return evaluateWithResult(facts).isPass();
     }
 
     /**
-     * 规则节点执行方法
-     * @param context 上下文
-     * @return 规则是否通过
+     * 强制子类实现新方法
+     * @param facts 参数
+     * @return 结果
      */
-    public abstract RuleResult evaluate(Map<String, Object> context);
+    public abstract RuleResult evaluateWithResult(Facts facts);
+
+
+    // 提供快捷方法
+    protected RuleResult createResult(boolean pass, String message) {
+        return new RuleResult.Builder(id)
+                .pass(pass)
+                .message(message)
+                .build();
+    }
 }

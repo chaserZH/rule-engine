@@ -1,4 +1,6 @@
+/Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/util/FactsUtils.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/exception/RuleEngineException.java
+/Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/model/LogicType.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/constants/FileType.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/engine/RuleEngine.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/parser/RuleParser.java

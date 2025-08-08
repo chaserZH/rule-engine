@@ -1,9 +1,19 @@
 package com.tommy.rulesengine.model;
 
+/**
+ * 规则组类型
+ * @author zhanghao
+ */
 public enum RuleGroupType {
 
-    SINGLE,     // 单条 Aviator 表达式规则
-    AND,        // 组合：全部满足
-    OR          // 组合：任意满足
+    /**
+     * 叶子节点
+     */
+    LEAF,
+
+    /**
+     * 组合节点
+     */
+    COMPOSITE,
 
 }

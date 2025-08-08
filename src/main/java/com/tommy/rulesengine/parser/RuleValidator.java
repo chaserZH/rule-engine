@@ -1,9 +1,7 @@
 package com.tommy.rulesengine.parser;
 
 import com.tommy.rulesengine.exception.RuleEngineException;
-import com.tommy.rulesengine.model.RuleDefinition;
-import com.tommy.rulesengine.model.RuleGroup;
-import com.tommy.rulesengine.model.RuleNode;
+import com.tommy.rulesengine.model.*;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
@@ -46,6 +44,10 @@ public class RuleValidator {
             if (!ids.add(def.getId())) {
                 throw new RuleEngineException("Duplicate rule ID found: " + def.getId());
             }
+            if (def.getType() == null || def.getType() != RuleGroupType.LEAF) {
+                throw new RuleEngineException("single rule type must be LEAF : " + def.getId());
+            }
+
 
         } else if (node instanceof RuleGroup) {
             RuleGroup group = (RuleGroup) node;
@@ -59,13 +61,17 @@ public class RuleValidator {
                 throw new RuleEngineException("Duplicate rule group ID found: " + group.getId());
             }
 
+            //组合节点
+            if (group.getType() == null || group.getType() != RuleGroupType.COMPOSITE) {
+                throw new RuleEngineException("single rule type must be COMPOSITE : " + group.getId());
+            }
             if (group.getChildren().size() == 1) {
                 // 自动视为 AND，不强制 type 为 AND
-                if (group.getType() != RuleGroup.Type.AND) {
+                if (group.getLogic() != LogicType.AND) {
                     throw new RuleEngineException("Rule group has one child, its type must be AND or unspecified: " + group.getId());
                 }
             }else if (group.getChildren().size() == 2) {
-                if (group.getType() == null) {
+                if (group.getLogic() == null) {
                     throw new RuleEngineException("Rule group has multiple children, its type must be specified (AND or OR): " + group.getId());
                 }
             }else if (group.getChildren().size() > 2) {
