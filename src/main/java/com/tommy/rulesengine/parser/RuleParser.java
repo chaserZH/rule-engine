@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * 规则解析器
+ * @author zhanghao
  */
 public class RuleParser {
 
@@ -63,8 +64,10 @@ public class RuleParser {
             throw new IllegalArgumentException("YAML content must start with a map (e.g. {rules: [...]})");
         }
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) raw;
         // 3. 获取 rules 部分
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> rulesList = (List<Map<String, Object>>) map.get("rules");
 
         if (rulesList == null || rulesList.isEmpty()) {
@@ -182,8 +185,8 @@ public class RuleParser {
     private List<Map<String, Object>> convertPropertiesToRuleList(Properties props) {
         // 获取所有规则组的索引
         Set<Integer> groupIndices = props.stringPropertyNames().stream()
-                .filter(key -> key.matches("rules\\[\\d+\\]\\.id"))
-                .map(key -> Integer.parseInt(key.replaceAll("rules\\[(\\d+)\\].*", "$1")))
+                .filter(key -> key.matches("rules\\[\\d+]\\.id"))
+                .map(key -> Integer.parseInt(key.replaceAll("rules\\[(\\d+)].*", "$1")))
                 .collect(Collectors.toSet());
 
         List<Map<String, Object>> rulesList = new ArrayList<>();
@@ -207,7 +210,7 @@ public class RuleParser {
         // 解析子节点
         Set<Integer> childIndices = props.stringPropertyNames().stream()
                 .filter(key -> key.startsWith(prefix + ".children[") && key.contains("].id"))
-                .map(key -> Integer.parseInt(key.replaceAll(".*children\\[(\\d+)\\].*", "$1")))
+                .map(key -> Integer.parseInt(key.replaceAll(".*children\\[(\\d+)].*", "$1")))
                 .collect(Collectors.toSet());
 
         List<Map<String, Object>> children = new ArrayList<>();
@@ -245,7 +248,7 @@ public class RuleParser {
             nodeMap.put("logic", props.getProperty(prefix + ".logic"));
             Set<Integer> grandChildIndices = props.stringPropertyNames().stream()
                     .filter(key -> key.startsWith(prefix + ".children[") && key.contains("].id"))
-                    .map(key -> Integer.parseInt(key.replaceAll(".*children\\[(\\d+)\\].*", "$1")))
+                    .map(key -> Integer.parseInt(key.replaceAll(".*children\\[(\\d+)].*", "$1")))
                     .collect(Collectors.toSet());
 
             List<Map<String, Object>> grandChildren = new ArrayList<>();

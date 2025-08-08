@@ -7,6 +7,8 @@ import com.tommy.rulesengine.model.RuleResult;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
@@ -15,7 +17,7 @@ import java.util.Properties;
  */
 public class RuleEngineUtil {
 
-    private static final RuleEngine engine = new RuleEngine();
+    private static final RuleEngine ENGINE = new RuleEngine();
 
     private RuleEngineUtil() {}
 
@@ -23,15 +25,15 @@ public class RuleEngineUtil {
     // 模式一：Apollo 配置调用
     // =======================
     public static RuleResult runFromApolloYaml(String namespaceContent, String ruleGroupId, Map<String, Object> input) {
-        return engine.executeFromApollo(namespaceContent, FileType.YAML, ruleGroupId, input);
+        return ENGINE.executeFromApollo(namespaceContent, FileType.YAML, ruleGroupId, input);
     }
 
     public static RuleResult runFromApolloYml(String namespaceContent, String ruleGroupId, Map<String, Object> input) {
-        return engine.executeFromApollo(namespaceContent,FileType.YML, ruleGroupId, input);
+        return ENGINE.executeFromApollo(namespaceContent,FileType.YML, ruleGroupId, input);
     }
 
     public static RuleResult runFromApolloProperties(String namespaceContent, String ruleGroupId, Map<String, Object> input) {
-        return engine.executeFromApollo(namespaceContent,FileType.PROPERTIES, ruleGroupId, input);
+        return ENGINE.executeFromApollo(namespaceContent,FileType.PROPERTIES, ruleGroupId, input);
     }
 
     // =======================
@@ -40,28 +42,28 @@ public class RuleEngineUtil {
     public static RuleResult runFromFile(String filePath, String ruleGroupId, Map<String, Object> input) throws IOException {
         FileType format = FileType.fromFilename(filePath);
         String fileContent = readFile(filePath);
-        return engine.executeFromFile(fileContent, format, ruleGroupId, input);
+        return ENGINE.executeFromFile(fileContent, format, ruleGroupId, input);
     }
 
     // =======================
     // 模式三：用户构造 RuleGroup
     // =======================
     public static RuleResult runFromObject(RuleGroup group, Map<String, Object> input) {
-        return engine.executeFromObject(group, input);
+        return ENGINE.executeFromObject(group, input);
     }
 
     // =======================
     // 模式四：用户构造 RuleGroup（json 字符串）
     // =======================
     public static RuleResult runFromJsonStr(String jsonStr, Map<String, Object> input) {
-        return engine.executeFromJsonStr(jsonStr, input);
+        return ENGINE.executeFromJsonStr(jsonStr, input);
     }
 
     // =======================
     // 模式四：用户构造 RuleGroup（json 为字符串数组或者头节点为“rules”）
     // =======================
     public static RuleResult runFromJsonStr(String jsonStr, String ruleGroupId, Map<String, Object> input) {
-        return engine.executeFromFile(jsonStr, FileType.JSON, ruleGroupId, input);
+        return ENGINE.executeFromFile(jsonStr, FileType.JSON, ruleGroupId, input);
     }
 
 
@@ -72,7 +74,7 @@ public class RuleEngineUtil {
         if (filePath.endsWith(".properties")) {
             Properties props = new Properties();
             try (InputStreamReader reader = new InputStreamReader(
-                    new FileInputStream(filePath), StandardCharsets.UTF_8)) {
+                    Files.newInputStream(Paths.get(filePath)), StandardCharsets.UTF_8)) {
                 props.load(reader);
             }
             // 将Properties转换为字符串格式（保持原有逻辑）
@@ -95,7 +97,7 @@ public class RuleEngineUtil {
 
     // 清除内部缓存
     public static void clearCache() {
-        engine.clearCache();
+        ENGINE.clearCache();
     }
 
 }

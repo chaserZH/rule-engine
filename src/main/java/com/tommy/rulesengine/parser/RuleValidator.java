@@ -22,9 +22,7 @@ public class RuleValidator {
      */
     public void validate(RuleGroup group) {
         log.info("begin validate rule group: {}", group.getId());
-        if (group == null) {
-            throw new RuleEngineException("Rule group is null");
-        }
+
 
         Set<String> ids = new HashSet<>();
         validateNode(group, ids);
