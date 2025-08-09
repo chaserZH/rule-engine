@@ -20,10 +20,8 @@ public class RuleValidator {
     /**
      * 校验规则组合法性（包括递归校验子节点）
      */
-    public void validate(RuleGroup group) {
+    public void validate(RuleNode group) {
         log.info("begin validate rule group: {}", group.getId());
-
-
         Set<String> ids = new HashSet<>();
         validateNode(group, ids);
         log.info("end validate rule group: {}", group.getId());
@@ -42,10 +40,9 @@ public class RuleValidator {
             if (!ids.add(def.getId())) {
                 throw new RuleEngineException("Duplicate rule ID found: " + def.getId());
             }
-            if (def.getType() == null || def.getType() != RuleGroupType.LEAF) {
+            if (def.getType() == null || def.getType() != NodeType.LEAF) {
                 throw new RuleEngineException("single rule type must be LEAF : " + def.getId());
             }
-
 
         } else if (node instanceof RuleGroup) {
             RuleGroup group = (RuleGroup) node;
@@ -60,7 +57,7 @@ public class RuleValidator {
             }
 
             //组合节点
-            if (group.getType() == null || group.getType() != RuleGroupType.COMPOSITE) {
+            if (group.getType() == null || group.getType() != NodeType.COMPOSITE) {
                 throw new RuleEngineException("single rule type must be COMPOSITE : " + group.getId());
             }
             if (group.getChildren().size() == 1) {

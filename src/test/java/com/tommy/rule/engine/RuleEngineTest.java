@@ -1,5 +1,6 @@
 package com.tommy.rule.engine;
 
+import com.google.common.collect.Lists;
 import com.tommy.rulesengine.model.*;
 import com.tommy.rulesengine.util.RuleEngineUtil;
 import org.junit.jupiter.api.Test;
@@ -16,10 +17,17 @@ public class RuleEngineTest {
      */
     @Test
     public void testSingleChildGroup() {
-        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A","判断是否在客群A",1, "isInCrowd(uid, '200003')");
-        r1.setPriority(1);
+        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A",1,true,"判断是否在客群A", "isInCrowd(uid, '200003')", Lists.newArrayList());
 
-        RuleGroup root = new RuleGroup("single-group", "单节点组合","单节点组合",0, LogicType.AND, Collections.singletonList(r1));
+
+        RuleGroup root = new RuleGroup("single-group",
+                "单节点组合",
+                0,
+                true,
+                "单节点组合",
+                LogicType.AND,
+                Collections.singletonList(r1),
+                Lists.newArrayList("SendCouponAction"));
 
         Map<String, Object> context = new HashMap<>();
         context.put("uid", 2038L);
@@ -47,20 +55,57 @@ public class RuleEngineTest {
      */
     @Test
     public void testMultipleChildGroup() {
-        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A","判断是否在客群A",1, "isInCrowd(uid, '200003')");
-        RuleDefinition r2 = new RuleDefinition("r2", "余额大于100","余额大于100",2, "balance > 100");
-        RuleDefinition r3 = new RuleDefinition("r3", "年龄小于30","年龄小于30",3, "age < 30");
+        RuleDefinition r1 = new RuleDefinition("r1",
+                "判断是否在客群A",
+                1,
+                true,
+                "判断是否在客群A",
+                "isInCrowd(uid, '200003')",
+                null
+                );
+        RuleDefinition r2 = new RuleDefinition("r2",
+                "余额大于100",
+                2,
+                true,
+                "余额大于100",
+                "balance > 100",
+                null
+                );
+        RuleDefinition r3 = new RuleDefinition("r3",
+                "年龄小于30",
+                3,
+                true,
+                "年龄小于30",
+                "age < 30",
+                null
+                );
 
         List<RuleNode> children = new ArrayList<>();
         children.add(r2);
         children.add(r3);
 
-        RuleGroup subGroup = new RuleGroup("group-1", "子组合组","子组合组",1, LogicType.OR, children);
+        RuleGroup subGroup = new RuleGroup("group-1",
+                "子组合组",
+                1,
+                true,
+                "子组合组",
+                LogicType.OR,
+                children,
+                null
+                );
 
         List<RuleNode> children2 = new ArrayList<>();
         children2.add(r1);
         children2.add(subGroup);
-        RuleGroup root = new RuleGroup("root-group", "根组合规则","",2, LogicType.AND,children2);
+        RuleGroup root = new RuleGroup("root-group",
+                "根组合规则",
+                2,
+                true,
+                "根组合规则",
+                LogicType.AND,
+                children2,
+                null
+                );
 
 
         Map<String, Object> context = new HashMap<>();

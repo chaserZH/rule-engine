@@ -5,6 +5,8 @@ rules:
     type: COMPOSITE
     logic: AND
     priority: 1
+    actions:
+      - "SendCouponAction"
     children:
       - id: "r1"
         name: "判断是否在客群A"
@@ -21,5 +23,5 @@ rules:
             expression: "balance > 100"
           - id: "r3"
             name: "年龄小于30"
-            type: SINGLE
+            type: LEAF
             expression: "age < 30"

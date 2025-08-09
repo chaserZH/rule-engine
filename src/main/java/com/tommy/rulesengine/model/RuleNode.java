@@ -1,77 +1,88 @@
 package com.tommy.rulesengine.model;
 
 import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.api.Rule;
-import org.jeasy.rules.core.BasicRule;
 
 import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * 规则节点基类
  * @author zhanghao
  */
-public abstract class RuleNode extends BasicRule implements Serializable {
+public abstract class RuleNode implements Serializable {
 
     private static final long serialVersionUID = 2945212834894124768L;
     /**
      * 节点id
      */
     protected String id;
-    /**
-     * 节点类型
-     */
-    protected final RuleGroupType type;
-
-    // 强制子类明确类型
-    protected RuleNode(String id, RuleGroupType type,
-                       String name, String description, int priority) {
-        super(name, description, priority);
-        this.id = Objects.requireNonNull(id);
-        this.type = Objects.requireNonNull(type);
-    }
-
-    // 简化构造（自动生成默认名称等）
-    protected RuleNode(String id, RuleGroupType type) {
-        //// 默认名称,// 空描述
-        this(id, type,
-                "Rule-" + id,
-                "",
-                Rule.DEFAULT_PRIORITY);
-    }
-
-    public RuleGroupType getType() {
-        return this.type;
-    }
-
-    // Getters and Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
 
     /**
-     * 实现BasicRule的boolean方法（适配旧逻辑）
-     * @param facts 参数
-     * @return 结果
+     * 节点名称
      */
-    @Override
-    public  boolean evaluate(Facts facts){
-        return evaluateWithResult(facts).isPass();
-    }
+    protected String name;
 
     /**
-     * 强制子类实现新方法
-     * @param facts 参数
-     * @return 结果
+     * 优先级
      */
-    public abstract RuleResult evaluateWithResult(Facts facts);
+    protected int priority;
+
+    /**
+     * 是否启用
+     */
+    protected boolean enabled = true;
 
 
-    // 提供快捷方法
-    protected RuleResult createResult(boolean pass, String message) {
-        return new RuleResult.Builder(id)
-                .pass(pass)
-                .message(message)
-                .build();
+    /**
+     * 节点描述
+     */
+    protected  String description;
+
+    /**
+     * 节点类型LEAF,COMPOSITE
+     */
+    protected NodeType nodeType;
+
+    public RuleNode(String id, String name, int priority, boolean enabled, String description, NodeType nodeType) {
+        this.id = id;
+        this.name = name;
+        this.priority = priority;
+        this.enabled = enabled;
+        this.nodeType = nodeType;
+        this.description = description;
     }
+
+
+
+    public NodeType getType() {
+        return this.nodeType;
+    }
+
+    //Getter
+
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+
+    /**
+     * 执行规则，返回执行结果
+     */
+    public abstract RuleResult evaluateWithActions(Facts facts);
 }

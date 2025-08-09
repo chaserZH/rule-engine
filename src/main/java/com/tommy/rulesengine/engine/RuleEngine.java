@@ -5,9 +5,12 @@ import com.tommy.rulesengine.constants.FileType;
 import com.tommy.rulesengine.executor.RuleExecutor;
 import com.tommy.rulesengine.function.FunctionRegistrar;
 import com.tommy.rulesengine.model.RuleGroup;
+import com.tommy.rulesengine.model.RuleNode;
 import com.tommy.rulesengine.model.RuleResult;
-import com.tommy.rulesengine.parser.RuleParser;
+import com.tommy.rulesengine.parser.ParserType;
+import com.tommy.rulesengine.parser.RuleParserFactory;
 import com.tommy.rulesengine.parser.RuleValidator;
+import com.tommy.rulesengine.util.FactsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,10 +24,8 @@ public class RuleEngine {
 
 
     // 缓存已解析的规则组，key = sourceType::identifier
-    private final Map<String, RuleGroup> cache = new ConcurrentHashMap<>();
+    private final Map<String, RuleNode> cache = new ConcurrentHashMap<>();
 
-    // 规则解析器（支持 YAML / JSON / properties，可拓展）
-    private final RuleParser parser = new RuleParser();
 
     // 规则执行器
     private final RuleExecutor executor = new RuleExecutor();
@@ -49,13 +50,14 @@ public class RuleEngine {
                 .getProperty("rules", "");
 
         String cacheKey = "apollo::" + ruleGroupId;
-        RuleGroup group = cache.computeIfAbsent(cacheKey, key -> {
-            List<RuleGroup> groups = parser.parse(yamlContent, format);
+        RuleNode group = cache.computeIfAbsent(cacheKey, key -> {
+            List<RuleNode> groups = RuleParserFactory.getParser(ParserType.convertFromFileType(format).getParserType()).parse(yamlContent);
+
             return findRuleGroupById(groups, ruleGroupId);
         });
 
         validator.validate(group);
-        return executor.execute(group, input);
+        return executor.executeRuleNode(group, FactsUtils.fromMap(input, true));
 
     }
 
@@ -65,13 +67,12 @@ public class RuleEngine {
      */
     public RuleResult executeFromFile(String fileContent, FileType format, String ruleGroupId, Map<String, Object> input) {
         String cacheKey = "file::" + format + "::" + ruleGroupId;
-        RuleGroup group = cache.computeIfAbsent(cacheKey, key -> {
-            List<RuleGroup> groups = parser.parse(fileContent, format);
+        RuleNode group = cache.computeIfAbsent(cacheKey, key -> {
+            List<RuleNode> groups = RuleParserFactory.getParser(ParserType.convertFromFileType(format).getParserType()).parse(fileContent);
             return findRuleGroupById(groups, ruleGroupId);
         });
-
         validator.validate(group);
-        return executor.execute(group, input);
+        return executor.executeRuleNode(group, FactsUtils.fromMap(input, true));
     }
 
     /**
@@ -80,7 +81,8 @@ public class RuleEngine {
     public RuleResult executeFromObject(RuleGroup group, Map<String, Object> input) {
         log.info("executeFromObject, group: {}, input: {}", group, input);
         validator.validate(group);
-        RuleResult result = executor.execute(group, input);
+        RuleResult result = executor.executeRuleNode(group, FactsUtils.fromMap(input, true));
+
         log.info("executeFromObject, result: {}", result);
         return result;
     }
@@ -90,10 +92,12 @@ public class RuleEngine {
      */
     public RuleResult executeFromJsonStr(String jsonStr, Map<String, Object> input) {
         log.info("executeFromJsonStr, group: {}, input: {}", jsonStr, input);
-        List<RuleGroup> groups = parser.parse(jsonStr, FileType.JSON);
-        RuleGroup group = groups.get(0);
+
+        List<RuleNode> groups = RuleParserFactory.getParser(ParserType.JSON.getParserType()).parse(jsonStr);
+        RuleNode group = groups.get(0);
         validator.validate(group);
-        RuleResult result = executor.execute(group, input);
+        RuleResult result = executor.executeRuleNode(group, FactsUtils.fromMap(input, true));
+
         log.info("executeFromJsonStr, result: {}", result);
         return result;
     }
@@ -102,8 +106,8 @@ public class RuleEngine {
     /**
      * 根据 ruleGroupId 在列表中查找
      */
-    private RuleGroup findRuleGroupById(List<RuleGroup> groups, String id) {
-        for (RuleGroup group : groups) {
+    private RuleNode findRuleGroupById(List<RuleNode> groups, String id) {
+        for (RuleNode group : groups) {
             if (group.getId().equals(id)) {
                 return group;
             }

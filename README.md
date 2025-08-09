@@ -37,7 +37,7 @@
 ### 2.3 选择建议
 * 需要复杂计算/表达式处理：选择 Aviator
 * 需要完整规则管理系统：选择 Easy Rules
-* 两者结合：可以在 Easy Rules 的规则条件中使用 Aviator 来处理复杂表达式
+* 两者结合：可以在 Easy Rules 的规则条件中使用 Aviator 来处理复杂表达式,在规则动作中使用Easy-Rules的actions动作。
 
 ### 2.4 计划
 我们这边的将选择Aviator与Easy-rules结合，采用Aviator作为表达式计算，Easy-Rules作为规则管理。
@@ -52,7 +52,9 @@
 * 可视化管理规则组，建立规则后管。
 
 ### 2.5 进程
-1. 目前在第一阶段，通过Aviator表达式引擎构建规则以及规则组
+1. 第一阶段已经完成，通过Aviator表达式引擎构建规则以及规则组
+2. 第二阶段
+* 集成Easy-Rules用于actions，aviator作为条件表达式执行则，easy-rules作为规则管理。
 
 
 ## 3. 数据结构
@@ -84,25 +86,35 @@ public abstract class RuleNode implements Serializable {
      * 节点id
      */
     protected String id;
-
     /**
-     * 名称
+     * 节点名称
      */
     protected String name;
-
     /**
      * 优先级
      */
     protected int priority;
-
+    /**
+     * 是否启用
+     */
+    protected boolean enabled = true;
 
     /**
-     * 规则节点执行方法
-     * @param context 上下文
-     * @return 规则是否通过
+     * 节点描述
      */
-    public abstract RuleResult evaluate(Map<String, Object> context);
+    protected  String description;
+
+    /**
+     * 节点类型LEAF,COMPOSITE
+     */
+    protected NodeType nodeType;
+
+    /**
+     * 执行规则，返回执行结果
+     */
+    public abstract RuleResult evaluateWithActions(Facts facts);
 }
+
 ```
 
 2. 规则的定义
@@ -111,24 +123,39 @@ public class RuleDefinition extends RuleNode {
 
     /**
      * 表达式
-     * // Aviator表达式
      */
     private String expression;
 
-
+    /**
+     * 动作
+     */
+    private List<String> actions;
     @Override
-    public RuleResult evaluate(Map<String, Object> context) {
-        try {
-            Expression compiled = AviatorEvaluator.compile(expression, true);
-            Object result = compiled.execute(context);
-            boolean pass = result instanceof Boolean && (Boolean) result;
-            return new RuleResult(id, pass, "Expression: " + expression);
-        } catch (Exception e) {
-            return new RuleResult(id, false, "Error: " + e.getMessage());
+    public RuleResult evaluateWithActions(Facts facts) {
+        if (!enabled) {
+            return new RuleResult(id, true, "enabled is false");
         }
+        boolean pass;
+        try {
+            pass = Boolean.TRUE.equals(AviatorEvaluator.execute(expression, facts.asMap(), true));
+        } catch (Exception e) {
+            return new RuleResult(id, false, "表达式执行异常：" + e.getMessage());
+        }
+        if (pass && actions != null) {
+            for (String actionName : actions) {
+                Rule action = ActionRegistry.getAction(actionName);
+                if (action == null) {
+                    return new RuleResult(id, false, "动作未注册：" + actionName);
+                }
+                try {
+                    action.execute(facts);
+                } catch (Exception e) {
+                    return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+                }
+            }
+        }
+        return new RuleResult(id, pass, pass ? "规则通过，动作执行成功" : "规则未通过");
     }
-
-
 }
 
 ```
@@ -137,25 +164,74 @@ public class RuleDefinition extends RuleNode {
 ```
 public class RuleGroup extends RuleNode {
 
-    public enum Type { AND, OR }
+    /**
+     * 逻辑类型 AND,OR
+     */
+    private LogicType logic;
 
-    // "AND" 或 "OR"
-    private Type type;
+    /**
+     * 子节点
+     */
     private List<RuleNode> children = new ArrayList<>();
 
-
+    /**
+     * 满足条件后的actions
+     */
+    private List<String> actions = new ArrayList<>();
     @Override
-    public RuleResult evaluate(Map<String, Object> context) {
-        List<RuleResult> results = children.stream()
+    public RuleResult evaluateWithActions(Facts facts) {
+        if (!enabled) {
+            return new RuleResult(id, true, "规则组未启用，默认通过");
+        }
+        
+        List<RuleResult> childResults = new ArrayList<>();
+        boolean passed;
+
+        List<RuleNode> activeChildren = children.stream()
+                .filter(RuleNode::isEnabled)
                 .sorted(Comparator.comparingInt(RuleNode::getPriority))
-                .map(child -> child.evaluate(context))
                 .collect(Collectors.toList());
 
-        boolean pass = (type == Type.AND)
-                ? results.stream().allMatch(RuleResult::isPass)
-                : results.stream().anyMatch(RuleResult::isPass);
+        if (logic == LogicType.AND) {
+            passed = true;
+            for (RuleNode child : activeChildren) {
+                RuleResult res = child.evaluateWithActions(facts);
+                childResults.add(res);
+                if (!res.isPass()) {
+                    passed = false;
+                    break;
+                }
+            }
+        } else { // OR
+            passed = false;
+            for (RuleNode child : activeChildren) {
+                RuleResult res = child.evaluateWithActions(facts);
+                childResults.add(res);
+                if (res.isPass()) {
+                    passed = true;
+                    break;
+                }
+            }
+        }
 
-        return new RuleResult(id, pass, "Group: " + name, results);
+        if (passed && actions != null) {
+            for (String actionName : actions) {
+                Rule action = ActionRegistry.getAction(actionName);
+                if (action != null) {
+                    try {
+                        action.execute(facts);
+                    } catch (Exception e) {
+                        return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+                    }
+                } else {
+                    return new RuleResult(id, false, "动作未注册：" + actionName);
+                }
+            }
+        }
+
+        return new RuleResult(id, passed,
+                passed ? "组合规则通过" : "组合规则未通过",
+                childResults);
     }
 }
 
@@ -173,100 +249,90 @@ public class RuleGroup extends RuleNode {
 rules:
   - id: "rule-group-1"
     name: "用户标签组合规则"
-    type: AND
+    type: COMPOSITE
+    logic: AND
     priority: 1
+    actions:
+      - "SendCouponAction"
     children:
       - id: "r1"
         name: "判断是否在客群A"
-        type: SINGLE
+        type: LEAF
         expression: "isInCrowd(uid, '200003')"
       - id: "group-1"
         name: "子组合组"
-        type: OR
+        type: COMPOSITE
+        logic: OR
         children:
           - id: "r2"
             name: "余额大于100"
-            type: SINGLE
+            type: LEAF
             expression: "balance > 100"
           - id: "r3"
             name: "年龄小于30"
-            type: SINGLE
+            type: LEAF
             expression: "age < 30"
-
 ```
 
 
 ## 5. 规则组的解析与校验、执行
 1. 规则组的解析、校验、执行统一入口
 ```
-/**
-     * 方式二：通过文件内容（支持 yaml/json/properties）+ 规则 ID 执行
-     */
-    public RuleResult executeFromFile(String fileContent, FileType format, String ruleGroupId, Map<String, Object> input) {
-        String cacheKey = "file::" + format + "::" + ruleGroupId;
-        RuleGroup group = cache.computeIfAbsent(cacheKey, key -> {
-            List<RuleGroup> groups = parser.parse(fileContent, format);
-            return findRuleGroupById(groups, ruleGroupId);
-        });
-
-        validator.validate(group);
-        return executor.execute(group, input);
-    }
+public RuleResult executeFromFile(String fileContent, FileType format, String ruleGroupId, Map<String, Object> input) {
+    String cacheKey = "file::" + format + "::" + ruleGroupId;
+    RuleNode group = cache.computeIfAbsent(cacheKey, key -> {
+        List<RuleNode> groups = RuleParserFactory.getParser(ParserType.convertFromFileType(format).getParserType()).parse(fileContent);
+        return findRuleGroupById(groups, ruleGroupId);
+    });
+    validator.validate(group);
+    return executor.executeRuleNode(group, FactsUtils.fromMap(input, true));
+}
 ```
 ### 5.1 解析
 ```
-/**
-     * 通用解析入口
+public interface RuleParser {
+
+
+    String getFormate();
+
+    /**
+     * 解析规则
+     * @param content 规则内容
+     * @return 规则节点列表
      */
-    public List<RuleGroup> parse(String content, FileType format) {
-        log.info("Parsing rule definitions from: {} format:{}",content, format);
-        List<RuleGroup> ruleGroups;
-        switch (format) {
-            case YAML:
-            case YML:
-                ruleGroups = parseYaml(content);
-                break;
-            case JSON:
-                ruleGroups = parseJson(content);
-                break;
-            case PROPERTIES:
-                ruleGroups = parseProperties(content);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported format: " + format);
-        }
-        log.info("Rule definitions parsed successfully, rule groups: {}", ruleGroups);
-        return ruleGroups;
-    }
+    List<RuleNode> parse(String content);
+}
 ```
+配置文件我们支持yaml、json、properties文件格式，以及jsonStr格式,我们用工厂聚合不同的解析实现类并选择具体的解析动作
+
 
 ### 5.2、校验
 ```
-    /**
-     * 校验规则组合法性（包括递归校验子节点）
-     */
-    public void validate(RuleGroup group) {
-        log.info("begin validate rule group: {}", group.getId());
-        if (group == null) {
-            throw new RuleEngineException("Rule group is null");
-        }
-
-        Set<String> ids = new HashSet<>();
-        validateNode(group, ids);
-        log.info("end validate rule group: {}", group.getId());
+/**
+ * 校验规则组合法性（包括递归校验子节点）
+ */
+public void validate(RuleGroup group) {
+    log.info("begin validate rule group: {}", group.getId());
+    if (group == null) {
+        throw new RuleEngineException("Rule group is null");
     }
+
+    Set<String> ids = new HashSet<>();
+    validateNode(group, ids);
+    log.info("end validate rule group: {}", group.getId());
+}
 ```
 
 ### 5.3、执行
 ```
-    public RuleResult execute(RuleGroup group, Map<String, Object> input) {
-        return group.evaluate(input);
-    }
+
 ```
-规则组的执行交由规则组自己执行，其核心就是借助Aviator表达式引擎
+规则组的执行交由规则组自己执行，其核心就是借助Aviator表达式引擎，执行通过之后并执行actions，比如发券等操作
 ```
-            Expression compiled = AviatorEvaluator.compile(expression, true);
-            Object result = compiled.execute(context);
+  public RuleResult executeRuleNode(RuleNode ruleNode, Facts facts) {
+
+      return ruleNode.evaluateWithActions(facts);
+  }
 ```
 
 ## 6. 表达式的拓展
@@ -372,8 +438,91 @@ public class FunctionRegistrar {
 2. 如果是接入方是非spring，需要编写spi文件
 
 
-## 7. 接入方式
-### 7.1 接入方式
+### 7 动作actions拓展
+* 动作actions拓展就是在规则组执行通过之后，执行一些业务逻辑，比如发券、发短信等操作
+* 动作actions选择用easy-rules，因为easy-rules支持自定义拓展的函数，我们可以在action中调用自定义的函数
+
+### 7.1 自定义动作actions
+```
+public class SendCouponAction implements Rule {
+
+    private boolean enabled = true;
+
+    @Override
+    public String getName() {
+        return "SendCouponAction";
+    }
+
+    @Override
+    public String getDescription() {
+        return "发送优惠券的动作";
+    }
+
+    @Override
+    public int getPriority() {
+        return 1; // 优先级
+    }
+
+    @Override
+    public boolean evaluate(Facts facts) {
+        // 动作本身通常不用条件判断，这里可以返回true表示执行
+        return enabled;
+    }
+
+    @Override
+    public void execute(Facts facts) throws Exception {
+        String uid = (String) facts.get("uid");
+        // 业务逻辑，比如发优惠券
+        System.out.println("发送优惠券给用户: " + uid);
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public int compareTo(Rule o) {
+        if (o == null) {
+            return -1;
+        }
+        return Integer.compare(this.getPriority(), o.getPriority());
+    }
+}
+```
+
+### 7.2 注册自定义actions注册中心
+```
+public class ActionRegistry {
+    private static final ConcurrentHashMap<String, Rule> ACTIONS = new ConcurrentHashMap<>();
+
+    public static void register(String name, Rule action) {
+        ACTIONS.put(name, action);
+    }
+
+    public static Rule getAction(String name) {
+        return ACTIONS.get(name);
+    }
+}
+```
+### 7.3 在运行时加载自定义actions
+在运行时加载自定义actions,我们需要在规则组执行之前，将自定义actions注册到ActionRegistry中
+```
+for (String actionName : actions) {
+    Rule action = ActionRegistry.getAction(actionName);
+    if (action != null) {
+        try {
+            action.execute(facts);
+        } catch (Exception e) {
+            return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+        }
+    } else {
+        return new RuleResult(id, false, "动作未注册：" + actionName);
+    }
+}
+```
+
+## 8. 接入方式
+### 8.1 接入方式
 接入方可以通过以下两种方式接入我们的sdk
 1. 下载我们的jar包，推送到自己的私服，便可直接使用
 下载目录，在项目的release目录对应的版本下，可以下载源码以及jar包
@@ -396,19 +545,19 @@ public class FunctionRegistrar {
 </dependency>
 </dependencies>
 ```
-### 7.2 接入入口
+### 8.2 接入入口
 > com.tommy.rulesengine.util.RuleEngineUtil
 
-### 7.3 接入规则配置方式
+### 8.3 接入规则配置方式
 1. 支持apollo的yaml、propertis、yml、json文件配置rules
 2、支持接入方本地的yaml、propertis、yml、json文件配置rules
 3、支持接入方自行构造RuleGroup
 4、支持接入方传递RuleGroup的json字符串。
 
 
-## 8 后期规划
-1. 目前已经完成第一阶段计划
-2. 已经着手第二阶段计划，集成aviator与easy-rules
+## 9 后期规划
+1. 已经完成第一阶段计划，集成aviator表达式引擎,并完成规则组定义与管理
+2. 已经完成第二阶段计划，集成aviator与easy-rules，规则判断采用aviator,动作actions采用easy-rules
 3. 已经在构想如何构建标签、以及规则组配置以及可视化管理
 4. 最终的目的就是希望做成规则引擎、供业务使用，减少代码开发以及管理
 

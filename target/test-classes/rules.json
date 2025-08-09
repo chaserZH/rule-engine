@@ -3,15 +3,19 @@
     {
       "id": "rule-group-1",
       "name": "用户标签组合规则",
+      "description": "用户标签组合规则",
       "type": "COMPOSITE",
       "logic": "AND",
       "priority": 1,
+      "actions": [
+        "SendCouponAction"
+      ],
       "children": [
         {
           "id": "r1",
           "name": "判断是否在客群A",
           "type": "LEAF",
-          "expression": "isInCrowd(uid, '200003')"
+          "expression": "isInCrowd(uid, '200003')",
         },
         {
           "id": "group-1",

@@ -2,8 +2,11 @@ package com.tommy.rulesengine.model;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
+import com.tommy.rulesengine.actions.ActionRegistry;
 import org.jeasy.rules.api.Facts;
+import org.jeasy.rules.api.Rule;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,60 +17,64 @@ import java.util.Map;
 public class RuleDefinition extends RuleNode {
 
     private static final long serialVersionUID = -6275744375419577254L;
+
     /**
      * 表达式
-     * // Aviator表达式
      */
     private String expression;
 
-    public RuleDefinition(String id, String expression) {
-        super(id, RuleGroupType.LEAF);
-        this.expression = validateExpression(expression);
-    }
+    /**
+     * 动作
+     */
+    private List<String> actions;
 
-    public RuleDefinition(String id, String name, String description, int priority, String expression) {
-        super(id, RuleGroupType.LEAF, name, description, priority);
+    public RuleDefinition(String id, String name, int priority, boolean enabled, String description,
+                          String expression, List<String> actions) {
+        super(id, name, priority, enabled, description, NodeType.LEAF);
         this.expression = expression;
+        this.actions = actions;
     }
 
-    private static String validateExpression(String expr) {
-        // 预编译验证表达式
-        AviatorEvaluator.compile(expr);
-        return expr;
-    }
 
+
+    /**
+     * 表达式
+     */
     public String getExpression() {
         return expression;
     }
 
-
-    public void setExpression(String expression) {
-        this.expression = expression;
+    /**
+     * 动作
+     */
+    public List<String> getActions() {
+        return actions;
     }
 
-
     @Override
-    public RuleResult evaluateWithResult(Facts facts) {
-        try {
-            Object result = AviatorEvaluator.execute(expression, facts.asMap());
-            boolean pass = Boolean.TRUE.equals(result);
-
-            return createResult(pass,
-                    pass ? "表达式验证通过" : "表达式验证失败");
-        } catch (Exception e) {
-            return createResult(false,
-                    "表达式执行错误: " + e.getMessage());
+    public RuleResult evaluateWithActions(Facts facts) {
+        if (!enabled) {
+            return new RuleResult(id, true, "enabled is false");
         }
-    }
-
-
-    @Override
-    public String toString() {
-        return "RuleDefinition{" +
-                "expression='" + expression + '\'' +
-                ", id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", priority=" + priority +
-                '}';
+        boolean pass;
+        try {
+            pass = Boolean.TRUE.equals(AviatorEvaluator.execute(expression, facts.asMap(), true));
+        } catch (Exception e) {
+            return new RuleResult(id, false, "表达式执行异常：" + e.getMessage());
+        }
+        if (pass && actions != null) {
+            for (String actionName : actions) {
+                Rule action = ActionRegistry.getAction(actionName);
+                if (action == null) {
+                    return new RuleResult(id, false, "动作未注册：" + actionName);
+                }
+                try {
+                    action.execute(facts);
+                } catch (Exception e) {
+                    return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+                }
+            }
+        }
+        return new RuleResult(id, pass, pass ? "规则通过，动作执行成功" : "规则未通过");
     }
 }

@@ -5,6 +5,8 @@ rules:
     type: COMPOSITE
     logic: AND
     priority: 1
+    actions:
+      - "SendCouponAction"
     children:
       - id: "r1"
         name: "判断是否在客群A"

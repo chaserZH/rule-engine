@@ -1,6 +1,8 @@
 package com.tommy.rulesengine.model;
 
+import com.tommy.rulesengine.actions.ActionRegistry;
 import org.jeasy.rules.api.Facts;
+import org.jeasy.rules.api.Rule;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,80 +24,90 @@ public class RuleGroup extends RuleNode {
      */
     private List<RuleNode> children = new ArrayList<>();
 
-    public RuleGroup(String id, String name, String description, int priority, LogicType logic, List<RuleNode> children) {
-        super(id, RuleGroupType.COMPOSITE, name, description, priority);
+    private List<String> actions = new ArrayList<>();
+
+    public RuleGroup(String id, String name, int priority, boolean enabled, String description,
+                     LogicType logic, List<RuleNode> children, List<String> actions) {
+        super(id, name, priority, enabled, description, NodeType.COMPOSITE);
         this.logic = logic;
-        this.children = children;
-    }
-
-    public RuleGroup(String id, LogicType logic, List<RuleNode> children) {
-        super(id, RuleGroupType.COMPOSITE);
-        this.logic = Objects.requireNonNull(logic);
-        this.children = new ArrayList<>(Objects.requireNonNull(children));
+        this.children = children != null ? children : new ArrayList<>();
+        this.actions = actions != null ? actions : new ArrayList<>();
     }
 
 
-    public LogicType getLogic() {
-        return logic;
-    }
-    
-    public void setLogic(LogicType logic) {
-        this.logic = logic;
-    }
-    
-    
-    public List<RuleNode> getChildren() {
-        return children;
-    }
-    
-    public void addChild(RuleNode child) {
-        this.children.add(child);
+
+    public LogicType getLogic() { return logic; }
+    public void setLogic(LogicType logic) { this.logic = logic; }
+
+    public List<RuleNode> getChildren() { return children; }
+    public void setChildren(List<RuleNode> children) { this.children = children; }
+    public void addChild(RuleNode child) { this.children.add(child); }
+    public List<String> getActions() {
+        return actions;
     }
 
-    public void setChildren(List<RuleNode> children) {
-        this.children = children;
+    public void setActions(List<String> actions) {
+        this.actions = actions;
     }
-
 
     @Override
-    public RuleResult evaluateWithResult(Facts facts) {
-        RuleResult.Builder builder = new RuleResult.Builder(id);
-        List<RuleResult> childResults = new ArrayList<>();
-        boolean passed = false;
-
-        switch (logic) {
-            case AND:
-                childResults = children.stream()
-                        .sorted(Comparator.comparingInt(RuleNode::getPriority))
-                        .map(child -> child.evaluateWithResult(facts))
-                        .collect(Collectors.toList());
-                passed = childResults.stream().allMatch(RuleResult::isPass);
-                break;
-                case OR:
-                    childResults = children.stream()
-                            .sorted(Comparator.comparingInt(RuleNode::getPriority))
-                            .map(child -> child.evaluateWithResult(facts))
-                            .collect(Collectors.toList());
-                    passed = childResults.stream().anyMatch(RuleResult::isPass);
-                    break;
-                    default:
-                        break;
+    public RuleResult evaluateWithActions(Facts facts) {
+        if (!enabled) {
+            return new RuleResult(id, true, "规则组未启用，默认通过");
         }
 
-        return builder.pass(passed)
-                .message(passed ? "组合规则通过" : "组合规则未通过")
-                .children(childResults)
-                .build();
+        List<RuleResult> childResults = new ArrayList<>();
+        boolean passed;
+
+        List<RuleNode> activeChildren = children.stream()
+                .filter(RuleNode::isEnabled)
+                .sorted(Comparator.comparingInt(RuleNode::getPriority))
+                .collect(Collectors.toList());
+
+        if (logic == LogicType.AND) {
+            passed = true;
+            for (RuleNode child : activeChildren) {
+                RuleResult res = child.evaluateWithActions(facts);
+                childResults.add(res);
+                if (!res.isPass()) {
+                    passed = false;
+                    break;
+                }
+            }
+        } else { // OR
+            passed = false;
+            for (RuleNode child : activeChildren) {
+                RuleResult res = child.evaluateWithActions(facts);
+                childResults.add(res);
+                if (res.isPass()) {
+                    passed = true;
+                    break;
+                }
+            }
+        }
+
+        if (passed && actions != null) {
+            for (String actionName : actions) {
+                Rule action = ActionRegistry.getAction(actionName);
+                if (action != null) {
+                    try {
+                        action.execute(facts);
+                    } catch (Exception e) {
+                        return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+                    }
+                } else {
+                    return new RuleResult(id, false, "动作未注册：" + actionName);
+                }
+            }
+        }
+
+        return new RuleResult(id, passed,
+                passed ? "组合规则通过" : "组合规则未通过",
+                childResults);
     }
 
-    @Override
-    public String toString() {
-        return "RuleGroup{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", type=" + type +
-                ", priority=" + priority +
-                ", children=" + children +
-                '}';
-    }
 }
+
+
+
+
