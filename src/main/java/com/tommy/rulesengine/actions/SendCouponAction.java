@@ -3,7 +3,11 @@ package com.tommy.rulesengine.actions;
 import org.jeasy.rules.api.Facts;
 import org.jeasy.rules.api.Rule;
 
-public class SendCouponAction implements Rule {
+/**
+ * 自定义规则动作：发券
+ * @author zhanghao
+ */
+public class SendCouponAction implements RuleActionMarker {
 
     private boolean enabled = true;
 
@@ -30,7 +34,7 @@ public class SendCouponAction implements Rule {
 
     @Override
     public void execute(Facts facts) throws Exception {
-        String uid = (String) facts.get("uid");
+        Long uid = facts.get("uid");
         // 业务逻辑，比如发优惠券
         System.out.println("发送优惠券给用户: " + uid);
     }

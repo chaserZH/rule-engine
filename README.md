@@ -441,10 +441,22 @@ public class FunctionRegistrar {
 ### 7 动作actions拓展
 * 动作actions拓展就是在规则组执行通过之后，执行一些业务逻辑，比如发券、发短信等操作
 * 动作actions选择用easy-rules，因为easy-rules支持自定义拓展的函数，我们可以在action中调用自定义的函数
+* 类似aviator自定义函数，采用spi机制加载
 
-### 7.1 自定义动作actions
+### 7.1 自定义自定义函数拓展接口
+拓展接口用于关联AbstractFunction以及便于SPI识别AbstractFunction的自定义函数
+#### 1. 自定义actions函数
 ```
-public class SendCouponAction implements Rule {
+/**
+ * 定义接口标识
+ */
+public interface RuleActionMarker extends Rule {
+}
+```
+
+#### 2. 自定义actions函数实现
+```
+public class SendCouponAction implements RuleActionMarker {
 
     private boolean enabled = true;
 
@@ -489,22 +501,37 @@ public class SendCouponAction implements Rule {
     }
 }
 ```
+#### 3. 定义Rule实现类的SPI文件
+我们需要在resource目录下/META-INF.services文件下创建SPI文件
+文件名为：com.tommy.rulesengine.actions.RuleActionMarker
+文件内容为自定义的函数绝对限定名
+> com.tommy.rulesengine.function.CrowdFunction
 
-### 7.2 注册自定义actions注册中心
+#### 4. 注册自定义表达式函数到注册中心
 ```
 public class ActionRegistry {
+
+    private static final Logger log = LoggerFactory.getLogger(ActionRegistry.class);
+
+
     private static final ConcurrentHashMap<String, Rule> ACTIONS = new ConcurrentHashMap<>();
 
-    public static void register(String name, Rule action) {
-        ACTIONS.put(name, action);
+    static {
+        ServiceLoader<RuleActionMarker> loader = ServiceLoader.load(RuleActionMarker.class);
+        for (RuleActionMarker action : loader) {
+            ACTIONS.put(action.getName(), action);
+            log.info("Registered SPI action: {}" , action.getName());
+        }
     }
+    
 
     public static Rule getAction(String name) {
         return ACTIONS.get(name);
     }
 }
 ```
-### 7.3 在运行时加载自定义actions
+
+### 7.2 在运行时加载自定义actions
 在运行时加载自定义actions,我们需要在规则组执行之前，将自定义actions注册到ActionRegistry中
 ```
 for (String actionName : actions) {

@@ -23,5 +23,5 @@ rules:
             expression: "balance > 100"
           - id: "r3"
             name: "年龄小于30"
-            type: SINGLE
+            type: LEAF
             expression: "age < 30"

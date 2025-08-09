@@ -10,11 +10,11 @@ import java.util.ServiceLoader;
 
 /**
  * SPI自动发现并注册自定义函数
+ * @author zhanghao
  */
 public class FunctionRegistrar {
 
     private static final Logger log = LoggerFactory.getLogger(FunctionRegistrar.class);
-
 
     public static void registerAll() {
         ServiceLoader<RuleFunctionMarker> loader = ServiceLoader.load(RuleFunctionMarker.class);
