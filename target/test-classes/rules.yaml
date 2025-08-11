@@ -5,6 +5,7 @@ rules:
     type: COMPOSITE
     logic: AND
     priority: 1
+    enabled: true
     actions:
       - "SendCouponAction"
     children:
@@ -12,16 +13,24 @@ rules:
         name: "判断是否在客群A"
         type: LEAF
         expression: "isInCrowd(uid, '200003')"
+        enabled: true
+        priority: 2
       - id: "group-1"
         name: "子组合组"
         type: COMPOSITE
         logic: OR
+        enabled: true
+        priority: 3
         children:
           - id: "r2"
             name: "余额大于100"
             type: LEAF
             expression: "balance > 100"
+            enabled: true
+            priority: 1
           - id: "r3"
             name: "年龄小于30"
             type: LEAF
             expression: "age < 30"
+            enabled: true
+            priority: 1
