@@ -61,6 +61,10 @@ public class PropertiesRuleParser extends AbstractRuleParser {
 
         NodeType nodeType = NodeType.valueOf(typeStr.trim().toUpperCase());
 
+        // 解析 attributes
+        Map<String, Object> attributes = readAttributes(props, baseKey);
+
+
         if (nodeType == NodeType.COMPOSITE) {
             String logicStr = props.getProperty(baseKey + ".logic", "AND");
             LogicType logic = LogicType.valueOf(logicStr.trim().toUpperCase());
@@ -77,12 +81,12 @@ public class PropertiesRuleParser extends AbstractRuleParser {
 
             List<String> actions = readActions(props, baseKey);
 
-            return new RuleGroup(id, name, priority, enabled, description, logic, children, actions);
+            return new RuleGroup(id, name, priority, enabled, description, logic, children, actions, attributes);
         } else {
             // LEAF 节点
             String expression = props.getProperty(baseKey + ".expression", "");
             List<String> actions = readActions(props, baseKey);
-            return new RuleDefinition(id, name, priority, enabled, description, expression, actions);
+            return new RuleDefinition(id, name, priority, enabled, description, expression, actions, attributes);
         }
     }
 
@@ -114,6 +118,38 @@ public class PropertiesRuleParser extends AbstractRuleParser {
         List<Integer> list = new ArrayList<>(indexes);
         Collections.sort(list);
         return list;
+    }
+
+    private static Map<String, Object> readAttributes(Properties props, String baseKey) {
+        Map<String, Object> attributes = new HashMap<>();
+        String prefix = baseKey + ".attributes.";
+        for (String key : props.stringPropertyNames()) {
+            if (key.startsWith(prefix)) {
+                String attrKey = key.substring(prefix.length());
+                String value = props.getProperty(key);
+                attributes.put(attrKey, parseValue(value));
+            }
+        }
+        return attributes;
+    }
+
+    private static Object parseValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        // 简单类型推断
+        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+            return Boolean.parseBoolean(value);
+        }
+        try {
+            if (value.contains(".")) {
+                return Double.parseDouble(value);
+            } else {
+                return Integer.parseInt(value);
+            }
+        } catch (NumberFormatException e) {
+            return value; // 原样返回字符串
+        }
     }
 
 }

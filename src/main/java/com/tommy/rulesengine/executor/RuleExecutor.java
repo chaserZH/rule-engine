@@ -10,7 +10,7 @@ public class RuleExecutor {
 
     public RuleResult executeRuleNode(RuleNode ruleNode, Facts facts) {
 
-        return ruleNode.evaluateWithActions(facts);
+        return ruleNode.evaluate(facts);
     }
 
 

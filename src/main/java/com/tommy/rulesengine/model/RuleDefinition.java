@@ -23,21 +23,19 @@ public class RuleDefinition extends RuleNode {
      */
     private String expression;
 
-    /**
-     * 动作
-     */
-    private List<String> actions;
-
 
 
     public RuleDefinition(String id, String name, int priority, boolean enabled, String description,
-                          String expression, List<String> actions) {
-        super(id, name, priority, enabled, description, NodeType.LEAF);
+                          String expression, List<String> actions,Map<String,Object> attributes) {
+        super(id, name, priority, enabled, description, NodeType.LEAF,actions,attributes);
         this.expression = expression;
         this.actions = actions;
+        this.attributes = attributes;
     }
 
-
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
 
     /**
      * 表达式
@@ -53,8 +51,15 @@ public class RuleDefinition extends RuleNode {
         return actions;
     }
 
+    /**
+     * 动作
+     */
+    public Map<String,Object> getAttribute() {
+        return attributes;
+    }
+
     @Override
-    public RuleResult evaluateWithActions(Facts facts) {
+    public RuleResult evaluate(Facts facts) {
         if (!enabled) {
             return new RuleResult(id, true, "enabled is false");
         }
@@ -64,19 +69,7 @@ public class RuleDefinition extends RuleNode {
         } catch (Exception e) {
             return new RuleResult(id, false, "表达式执行异常：" + e.getMessage());
         }
-        if (pass && actions != null) {
-            for (String actionName : actions) {
-                Rule action = ActionRegistry.getAction(actionName);
-                if (action == null) {
-                    return new RuleResult(id, false, "动作未注册：" + actionName);
-                }
-                try {
-                    action.execute(facts);
-                } catch (Exception e) {
-                    return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
-                }
-            }
-        }
-        return new RuleResult(id, pass, pass ? "规则通过，动作执行成功" : "规则未通过");
+        return new RuleResult(id, pass, pass ? "规则通过" : "规则未通过");
     }
+
 }

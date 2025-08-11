@@ -17,7 +17,7 @@ public class RuleEngineTest {
      */
     @Test
     public void testSingleChildGroup() {
-        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A",1,true,"判断是否在客群A", "isInCrowd(uid, '200003')", Lists.newArrayList());
+        RuleDefinition r1 = new RuleDefinition("r1", "判断是否在客群A",1,true,"判断是否在客群A", "isInCrowd(uid, '200003')", Lists.newArrayList(),null);
 
 
         RuleGroup root = new RuleGroup("single-group",
@@ -27,7 +27,8 @@ public class RuleEngineTest {
                 "单节点组合",
                 LogicType.AND,
                 Collections.singletonList(r1),
-                Lists.newArrayList("SendCouponAction"));
+                Lists.newArrayList("SendCouponAction"),
+                null);
 
         Map<String, Object> context = new HashMap<>();
         context.put("uid", 2038L);
@@ -61,6 +62,7 @@ public class RuleEngineTest {
                 true,
                 "判断是否在客群A",
                 "isInCrowd(uid, '200003')",
+                null,
                 null
                 );
         RuleDefinition r2 = new RuleDefinition("r2",
@@ -69,6 +71,7 @@ public class RuleEngineTest {
                 true,
                 "余额大于100",
                 "balance > 100",
+                null,
                 null
                 );
         RuleDefinition r3 = new RuleDefinition("r3",
@@ -77,6 +80,7 @@ public class RuleEngineTest {
                 true,
                 "年龄小于30",
                 "age < 30",
+                null,
                 null
                 );
 
@@ -91,6 +95,7 @@ public class RuleEngineTest {
                 "子组合组",
                 LogicType.OR,
                 children,
+                null,
                 null
                 );
 
@@ -104,6 +109,7 @@ public class RuleEngineTest {
                 "根组合规则",
                 LogicType.AND,
                 children2,
+                null,
                 null
                 );
 

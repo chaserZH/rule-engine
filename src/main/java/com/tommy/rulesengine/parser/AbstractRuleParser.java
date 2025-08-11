@@ -92,21 +92,30 @@ public abstract class AbstractRuleParser implements RuleParser {
         int priority = (int) nodeMap.getOrDefault("priority",0);
         boolean enabled = (boolean) nodeMap.getOrDefault("enabled", true);
         String description = (String) nodeMap.get("description");
+
         if (isGroup) {
             @SuppressWarnings("unchecked")
             List<String> actions = (List<String>) nodeMap.getOrDefault("actions", Collections.emptyList());
             LogicType logic = LogicType.valueOf(((String) nodeMap.get("logic")).toUpperCase());
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> childrenRaw = (List<Map<String, Object>>) nodeMap.get("children");
+            // 统一解析 attributes（可选的业务扩展属性）
+            @SuppressWarnings("unchecked")
+            Map<String, Object> attributes = (Map<String, Object>) nodeMap.getOrDefault("attributes", Collections.emptyMap());
+
             List<RuleNode> children = childrenRaw.stream()
                     .map(this::buildNode)
                     .collect(Collectors.toList());
-            return new RuleGroup(id, name, priority, enabled, description, logic, children,actions);
+            return new RuleGroup(id, name, priority, enabled, description, logic, children,actions,attributes);
         } else {
             String expression = (String) nodeMap.get("expression");
             @SuppressWarnings("unchecked")
             List<String> actions = (List<String>) nodeMap.getOrDefault("actions", Collections.emptyList());
-            return new RuleDefinition(id, name, priority, enabled, description, expression, actions);
+            // 统一解析 attributes（可选的业务扩展属性）
+            @SuppressWarnings("unchecked")
+            Map<String, Object> attributes = (Map<String, Object>) nodeMap.getOrDefault("attributes", Collections.emptyMap());
+
+            return new RuleDefinition(id, name, priority, enabled, description, expression, actions,attributes);
         }
     }
 

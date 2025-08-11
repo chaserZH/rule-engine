@@ -1,8 +1,6 @@
 package com.tommy.rulesengine.model;
 
-import com.tommy.rulesengine.actions.ActionRegistry;
 import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.api.Rule;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,18 +22,15 @@ public class RuleGroup extends RuleNode {
      */
     private List<RuleNode> children = new ArrayList<>();
 
-    private List<String> actions = new ArrayList<>();
 
 
     public RuleGroup(String id, String name, int priority, boolean enabled, String description,
-                     LogicType logic, List<RuleNode> children, List<String> actions) {
-        super(id, name, priority, enabled, description, NodeType.COMPOSITE);
+                     LogicType logic, List<RuleNode> children, List<String> actions, Map<String, Object> attributes) {
+        super(id, name, priority, enabled, description, NodeType.COMPOSITE, actions, attributes);
         this.logic = logic;
         this.children = children != null ? children : new ArrayList<>();
         this.actions = actions != null ? actions : new ArrayList<>();
     }
-
-
 
     public LogicType getLogic() { return logic; }
     public void setLogic(LogicType logic) { this.logic = logic; }
@@ -51,62 +46,71 @@ public class RuleGroup extends RuleNode {
         this.actions = actions;
     }
 
+
     @Override
-    public RuleResult evaluateWithActions(Facts facts) {
-        if (!enabled) {
-            return new RuleResult(id, true, "规则组未启用，默认通过");
-        }
-
-        List<RuleResult> childResults = new ArrayList<>();
-        boolean passed;
-
+    public RuleResult evaluate(Facts facts) {
         List<RuleNode> activeChildren = children.stream()
                 .filter(RuleNode::isEnabled)
                 .sorted(Comparator.comparingInt(RuleNode::getPriority))
                 .collect(Collectors.toList());
 
-        if (logic == LogicType.AND) {
-            passed = true;
-            for (RuleNode child : activeChildren) {
-                RuleResult res = child.evaluateWithActions(facts);
-                childResults.add(res);
-                if (!res.isPass()) {
-                    passed = false;
-                    break;
-                }
-            }
-        } else { // OR
-            passed = false;
-            for (RuleNode child : activeChildren) {
-                RuleResult res = child.evaluateWithActions(facts);
-                childResults.add(res);
-                if (res.isPass()) {
-                    passed = true;
-                    break;
-                }
-            }
-        }
+        List<RuleResult> childResults = new ArrayList<>();
+        boolean passed = false;
 
-        if (passed && actions != null) {
-            for (String actionName : actions) {
-                Rule action = ActionRegistry.getAction(actionName);
-                if (action != null) {
-                    try {
-                        action.execute(facts);
-                    } catch (Exception e) {
-                        return new RuleResult(id, false, "动作执行异常：" + e.getMessage());
+        switch (logic) {
+            case AND:
+                passed = true;
+                for (RuleNode child : activeChildren) {
+                    RuleResult res = child.evaluate(facts);
+                    childResults.add(res);
+                    // and 操作
+                    if (!res.isPass()) {
+                        passed = false;
+                        break;
                     }
-                } else {
-                    return new RuleResult(id, false, "动作未注册：" + actionName);
                 }
-            }
+                break;
+            case OR:
+                for (RuleNode child : activeChildren) {
+                    RuleResult res = child.evaluate(facts);
+                    childResults.add(res);
+                    // or 短路操作
+                    if (res.isPass()) {
+                        passed = true;
+                        break;
+                    }
+                }
+                break;
+            case PRIORITY:
+                for (RuleNode child : activeChildren) {
+                    RuleResult res = child.evaluate(facts);
+                    childResults.add(res);
+                    if (res.isPass()) {
+                        passed = true;
+                        // 命中第一个符合条件的，直接执行动作
+                        child.executeActions(facts);
+                        return new RuleResult(id, true,
+                                "优先路由命中：" + child.getId(),
+                                childResults);
+                    }
+                }
+                break;
+
         }
 
+        // ✅ 如果整体通过，统一执行当前节点及所有子节点的动作
+        if (passed && logic != LogicType.PRIORITY) {
+            // 当前组的动作
+            executeActions(facts);
+            // 子节点动作
+            for (RuleNode child : activeChildren) {
+                child.executeActions(facts);
+            }
+        }
         return new RuleResult(id, passed,
                 passed ? "组合规则通过" : "组合规则未通过",
                 childResults);
     }
-
 }
 
 
