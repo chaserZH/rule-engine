@@ -4,6 +4,8 @@ import com.tommy.rulesengine.parser.impl.JsonRuleParser;
 import com.tommy.rulesengine.parser.impl.PropertiesRuleParser;
 import com.tommy.rulesengine.parser.impl.YamlRuleParser;
 
+import java.util.Objects;
+
 /**
  * @author zhanghao
  */
@@ -15,9 +17,9 @@ public class RuleParserFactory {
      * @return 规则解析器
      */
     public static RuleParser getParser(String format) {
-        ParserType parserType = ParserType.valueOf(format);
+        ParserType parserType = ParserType.getByParserType(format);
 
-        switch (parserType) {
+        switch (Objects.requireNonNull(parserType)) {
             case JSON:
                 return new JsonRuleParser();
             case PROPERTIES:

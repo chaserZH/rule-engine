@@ -28,3 +28,4 @@
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/function/FunctionRegistrar.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/parser/package-info.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/model/NodeType.java
+/Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/actions/RuleActionMarker.java

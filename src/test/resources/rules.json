@@ -15,7 +15,7 @@
           "id": "r1",
           "name": "判断是否在客群A",
           "type": "LEAF",
-          "expression": "isInCrowd(uid, '200003')",
+          "expression": "isInCrowd(uid, '200003')"
         },
         {
           "id": "group-1",
@@ -31,41 +31,6 @@
             },
             {
               "id": "r3",
-              "name": "年龄小于30",
-              "type": "LEAF",
-              "expression": "age < 30"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rule-group-2",
-      "name": "用户标签组合规则",
-      "type": "COMPOSITE",
-      "logic": "AND",
-      "priority": 1,
-      "children": [
-        {
-          "id": "A1",
-          "name": "判断是否在客群A",
-          "type": "LEAF",
-          "expression": "isInCrowd(uid, '200003')"
-        },
-        {
-          "id": "Agroup-1",
-          "name": "子组合组",
-          "type": "COMPOSITE",
-          "logic": "OR",
-          "children": [
-            {
-              "id": "A2",
-              "name": "余额大于100",
-              "type": "LEAF",
-              "expression": "balance > 100"
-            },
-            {
-              "id": "A3",
               "name": "年龄小于30",
               "type": "LEAF",
               "expression": "age < 30"
