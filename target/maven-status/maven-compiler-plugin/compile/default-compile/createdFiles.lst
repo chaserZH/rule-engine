@@ -20,7 +20,6 @@ com/tommy/rulesengine/model/RuleResult.class
 com/tommy/rulesengine/parser/impl/YamlRuleParser.class
 com/tommy/rulesengine/util/FactsUtils.class
 com/tommy/rulesengine/executor/RuleExecutor.class
-com/tommy/rulesengine/util/PropertiesUtil.class
 com/tommy/rulesengine/function/CrowdFunction.class
 com/tommy/rulesengine/parser/RuleParser.class
 com/tommy/rulesengine/util/RuleEngineUtil.class

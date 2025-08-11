@@ -1,6 +1,5 @@
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/exception/RuleEngineException.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/engine/RuleEngine.java
-/Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/util/PropertiesUtil.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/parser/ParserType.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/model/RuleGroup.java
 /Applications/code/personal/rule-engine/src/main/java/com/tommy/rulesengine/parser/impl/JsonRuleParser.java
