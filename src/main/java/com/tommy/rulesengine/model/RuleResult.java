@@ -49,4 +49,8 @@ public class RuleResult implements Serializable{
     public boolean isPass() { return pass; }
     public String getMessage() { return message; }
     public List<RuleResult> getChildren() { return children; }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
 }
