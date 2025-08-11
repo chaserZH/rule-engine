@@ -1,10 +1,7 @@
 package com.tommy.rulesengine.model;
 
 import com.googlecode.aviator.AviatorEvaluator;
-import com.googlecode.aviator.Expression;
-import com.tommy.rulesengine.actions.ActionRegistry;
 import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.api.Rule;
 
 import java.util.List;
 import java.util.Map;
@@ -33,9 +30,6 @@ public class RuleDefinition extends RuleNode {
         this.attributes = attributes;
     }
 
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
 
     /**
      * 表达式
@@ -44,32 +38,20 @@ public class RuleDefinition extends RuleNode {
         return expression;
     }
 
-    /**
-     * 动作
-     */
-    public List<String> getActions() {
-        return actions;
-    }
 
-    /**
-     * 动作
-     */
-    public Map<String,Object> getAttribute() {
-        return attributes;
-    }
 
     @Override
     public RuleResult evaluate(Facts facts) {
         if (!enabled) {
-            return new RuleResult(id, true, "enabled is false");
+            return new RuleResult(id, true, "enabled is false",attributes);
         }
         boolean pass;
         try {
             pass = Boolean.TRUE.equals(AviatorEvaluator.execute(expression, facts.asMap(), true));
         } catch (Exception e) {
-            return new RuleResult(id, false, "表达式执行异常：" + e.getMessage());
+            return new RuleResult(id, false, "表达式执行异常：" + e.getMessage(),attributes);
         }
-        return new RuleResult(id, pass, pass ? "规则通过" : "规则未通过");
+        return new RuleResult(id, pass, pass ? "规则通过" : "规则未通过",attributes);
     }
 
 }

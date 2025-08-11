@@ -98,6 +98,17 @@ public abstract class RuleNode implements Serializable {
         return description;
     }
 
+    public NodeType getNodeType() {
+        return nodeType;
+    }
+
+    public List<String> getActions() {
+        return actions;
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
 
     /**
      * 执行规则，返回执行结果

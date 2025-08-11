@@ -38,9 +38,7 @@ public class RuleGroup extends RuleNode {
     public List<RuleNode> getChildren() { return children; }
     public void setChildren(List<RuleNode> children) { this.children = children; }
     public void addChild(RuleNode child) { this.children.add(child); }
-    public List<String> getActions() {
-        return actions;
-    }
+
 
     public void setActions(List<String> actions) {
         this.actions = actions;
@@ -91,7 +89,8 @@ public class RuleGroup extends RuleNode {
                         child.executeActions(facts);
                         return new RuleResult(id, true,
                                 "优先路由命中：" + child.getId(),
-                                childResults);
+                                childResults,
+                                this.attributes);
                     }
                 }
                 break;
@@ -109,7 +108,8 @@ public class RuleGroup extends RuleNode {
         }
         return new RuleResult(id, passed,
                 passed ? "组合规则通过" : "组合规则未通过",
-                childResults);
+                childResults,
+                this.attributes);
     }
 }
 
