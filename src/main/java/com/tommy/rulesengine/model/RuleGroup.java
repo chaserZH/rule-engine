@@ -26,6 +26,7 @@ public class RuleGroup extends RuleNode {
 
     private List<String> actions = new ArrayList<>();
 
+
     public RuleGroup(String id, String name, int priority, boolean enabled, String description,
                      LogicType logic, List<RuleNode> children, List<String> actions) {
         super(id, name, priority, enabled, description, NodeType.COMPOSITE);

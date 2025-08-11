@@ -164,7 +164,7 @@ public class RuleEngineTest {
         context.put("balance", 150);
         context.put("age", 28);
 
-        RuleResult result = RuleEngineUtil.runFromJsonStr("{\"id\":\"rule-group-1\",\"name\":\"用户标签组合规则\",\"type\":\"AND\",\"priority\":1,\"children\":[{\"id\":\"r1\",\"name\":\"判断是否在客群A\",\"type\":\"SINGLE\",\"expression\":\"isInCrowd(uid, '200003')\"},{\"id\":\"group-1\",\"name\":\"子组合组\",\"type\":\"OR\",\"children\":[{\"id\":\"r2\",\"name\":\"余额大于100\",\"type\":\"SINGLE\",\"expression\":\"balance > 100\"},{\"id\":\"r3\",\"name\":\"年龄小于30\",\"type\":\"SINGLE\",\"expression\":\"age < 30\"}]}]}", context);
+        RuleResult result = RuleEngineUtil.runFromJsonStr("{\"id\":\"rule-group-1\",\"name\":\"用户标签组合规则\",\"description\":\"用户标签组合规则\",\"type\":\"COMPOSITE\",\"logic\":\"AND\",\"enabled\":true,\"priority\":1,\"actions\":[\"SendCouponAction\"],\"children\":[{\"id\":\"r1\",\"name\":\"判断是否在客群A\",\"type\":\"LEAF\",\"expression\":\"isInCrowd(uid, '200003')\",\"enabled\":true,\"priority\":1},{\"id\":\"group-1\",\"name\":\"子组合组\",\"type\":\"COMPOSITE\",\"logic\":\"OR\",\"enabled\":true,\"priority\":1,\"children\":[{\"id\":\"r2\",\"name\":\"余额大于100\",\"type\":\"LEAF\",\"expression\":\"balance > 100\",\"enabled\":true,\"priority\":1},{\"id\":\"r3\",\"name\":\"年龄小于30\",\"type\":\"LEAF\",\"expression\":\"age < 30\",\"enabled\":true,\"priority\":1}]}]}", context);
         printResult(result);
     }
 

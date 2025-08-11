@@ -89,7 +89,7 @@ public abstract class AbstractRuleParser implements RuleParser {
         boolean isGroup = nodeMap.containsKey("children");
         String id = (String) nodeMap.get("id");
         String name = (String) nodeMap.get("name");
-        int priority = (int) nodeMap.getOrDefault("priority", 0);
+        int priority = (int) nodeMap.get("priority");
         boolean enabled = (boolean) nodeMap.getOrDefault("enabled", true);
         String description = (String) nodeMap.get("description");
         if (isGroup) {

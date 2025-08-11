@@ -42,6 +42,7 @@ public abstract class RuleNode implements Serializable {
      */
     protected NodeType nodeType;
 
+
     public RuleNode(String id, String name, int priority, boolean enabled, String description, NodeType nodeType) {
         this.id = id;
         this.name = name;

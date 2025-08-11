@@ -28,6 +28,8 @@ public class RuleDefinition extends RuleNode {
      */
     private List<String> actions;
 
+
+
     public RuleDefinition(String id, String name, int priority, boolean enabled, String description,
                           String expression, List<String> actions) {
         super(id, name, priority, enabled, description, NodeType.LEAF);
