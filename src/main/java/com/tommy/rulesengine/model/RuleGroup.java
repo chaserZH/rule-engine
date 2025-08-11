@@ -87,10 +87,15 @@ public class RuleGroup extends RuleNode {
                         passed = true;
                         // 命中第一个符合条件的，直接执行动作
                         child.executeActions(facts);
+                        // 取子节点的attributes里的paymentMethod
+                        Map<String, Object> attrs = this.attributes != null ? attributes : new HashMap<>();
+                        if (child.getAttributes() != null) {
+                            attrs.putAll(child.getAttributes());
+                        }
                         return new RuleResult(id, true,
                                 "优先路由命中：" + child.getId(),
                                 childResults,
-                                this.attributes);
+                                attrs);
                     }
                 }
                 break;
